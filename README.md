@@ -4,14 +4,14 @@ https://discord.gg/c5zRpMjY
 
 # Discord Joiner and Boost Tool
 
-This project is designed to automate the process of joining Discord servers and boosting them using multiple tokens. It utilizes the `discord.js-selfbot-v13` library for Discord interactions, `2captcha` for solving captchas, and proxies for managing multiple accounts.
+This project is designed to automate the process of joining Discord servers and boosting them using multiple tokens. It utilizes the `discord.js-selfbot-v13` library for Discord interactions, `OwoSolver API` for solving captchas, and proxies for managing multiple accounts.
 
 ## Configuration (`config.json`)
 
 The `config.json` file is crucial for the operation of this script. Here's a breakdown of its contents:
 
 - `invite`: The Discord invite code of the server you wish to join.
-- `two_captcha_key`: Your API key from 2Captcha, used for solving captchas automatically.
+- `owo_solver_key`: Your API key from OwoSolver, used for solving captchas automatically.
 - `captcha_retry_limit`: The maximum number of attempts to retry solving a captcha if the first attempt fails.
 - `join_delay_min`: The minimum delay (in milliseconds) before attempting to join the server with a new token.
 - `join_delay_max`: The maximum delay (in milliseconds) before attempting to join the server with a new token.
@@ -37,7 +37,7 @@ socks5://username:password@host:port
 
 ## Prerequisites
 
-Before running the script, ensure you have Node.js installed on your system. You will also need a 2Captcha API key and a list of Discord tokens.
+Before running the script, ensure you have Node.js installed on your system. You will also need an OwoSolver API key and a list of Discord tokens.
 
 
 ## Installation
@@ -70,7 +70,7 @@ node .
 
 - The script reads the configuration and token list.
 - For each token, it attempts to join the specified Discord server.
-- If captchas are encountered, it uses the 2Captcha service to solve them.
+- If captchas are encountered, it uses the OwoSolver API service to solve them.
 - Successes and failures are logged to the console.
 
 ## Error Handling

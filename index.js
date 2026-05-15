@@ -4,14 +4,13 @@
 //Importing Modules
 const { Client } = require('discord.js-selfbot-v13');
 const fs = require('fs');
-const Captcha = require('2captcha');
 const { ProxyAgent } = require('proxy-agent');
 const chalk = require('chalk');
 
 // Config
 const config = require('./config');
 let invite = config.invite;
-let captcha_key = config.two_captcha_key;
+let captcha_key = config.owo_solver_key;
 let captcha_retry_limit = config.captcha_retry_limit;
 let join_delay_min = config.join_delay_min;
 let join_delay_max = config.join_delay_max;
@@ -40,7 +39,7 @@ let failed = 0;
 let i = 0;
 let j = 0;
 let tokens = fs.readFileSync('tokens.txt', 'utf8').replace(/\r/g, '').split('\n').filter(x => x);
-const solver = new Captcha.Solver(captcha_key);
+const OWO_SOLVER_BASE_URL = 'https://owosolver.web.id';
 
 
 
@@ -60,12 +59,7 @@ async function join(token, isLast) {
 
     const client = new Client({
         captchaSolver: function (captcha, UA) {
-            return solver
-                .hcaptcha(captcha.captcha_sitekey, 'discord.com', {
-                    invisible: 1,
-                    userAgent: UA,
-                    data: captcha.captcha_rqdata,
-                })
+            return solveCaptchaWithOwoSolver(captcha, UA);
         },
         captchaRetryLimit: captcha_retry_limit,
         ws: {
@@ -130,4 +124,68 @@ async function join(token, isLast) {
 
 function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+async function solveCaptchaWithOwoSolver(captcha, userAgent) {
+    const createTaskResponse = await fetch(`${OWO_SOLVER_BASE_URL}/createTask`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            clientKey: captcha_key,
+            task: {
+                type: 'HCaptchaTaskProxyLess',
+                websiteURL: 'https://discord.com',
+                websiteKey: captcha.captcha_sitekey,
+                isInvisible: true,
+                enterprisePayload: {
+                    rqdata: captcha.captcha_rqdata,
+                },
+                userAgent,
+            },
+        }),
+    });
+
+    const createTaskData = await createTaskResponse.json();
+
+    if (createTaskData.errorId && createTaskData.errorId !== 0) {
+        throw new Error(`OwoSolver createTask failed: ${createTaskData.errorCode || createTaskData.errorDescription || 'Unknown error'}`);
+    }
+
+    const taskId = createTaskData.taskId;
+    if (!taskId) {
+        throw new Error('OwoSolver createTask failed: missing taskId in response');
+    }
+
+    const maxAttempts = 30;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        const getResultResponse = await fetch(`${OWO_SOLVER_BASE_URL}/getTaskResult`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                clientKey: captcha_key,
+                taskId,
+            }),
+        });
+
+        const getResultData = await getResultResponse.json();
+
+        if (getResultData.errorId && getResultData.errorId !== 0) {
+            throw new Error(`OwoSolver getTaskResult failed: ${getResultData.errorCode || getResultData.errorDescription || 'Unknown error'}`);
+        }
+
+        if (getResultData.status === 'ready') {
+            const token = getResultData.solution?.gRecaptchaResponse || getResultData.solution?.token;
+            if (!token) {
+                throw new Error('OwoSolver returned ready status but no captcha token was found');
+            }
+            return token;
+        }
+    }
+
+    throw new Error('OwoSolver timed out while waiting for captcha solution');
 }
