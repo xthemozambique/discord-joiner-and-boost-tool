@@ -9,5 +9,5 @@
         "delay_max": 6000,
         "server_id": ""
     },
-    "owo_solver_key": "your owosolver api key"
+    "azcaptcha_key": "your azcaptcha api key"
 }
